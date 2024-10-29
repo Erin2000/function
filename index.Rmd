@@ -1,0 +1,166 @@
+---
+title: "Yining's awesome website"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: cerulean
+---
+
+```{r}
+library(tidyverse)
+library(rvest)
+```
+```{r}
+l = list(
+  vec_numeric = 5:8,
+  mat         = matrix(1:8, 2, 4),
+  vec_logical = c(TRUE, FALSE),
+  summary     = summary(rnorm(1000)))
+l
+
+l$mat
+l[["mat"]][1,3]
+
+l[[1]]
+l[[4]]
+```
+```{r}
+# Define the mean and standard deviation function
+mean_and_sd <- function(x) {
+  mean_x <- mean(x)
+  sd_x <- sd(x)
+  
+  out_df <- tibble(
+    mean = mean_x,
+    sd = sd_x
+  )
+  
+  return(out_df)
+}
+
+```
+
+```{r}
+list_norm <- list(
+  a = rnorm(20, 0, 5),
+  b = rnorm(20, 4, 5),
+  c = rnorm(20, 0, 10),
+  d = rnorm(20, 4, 10)
+)
+```
+
+```{r}
+mean_and_sd(list_norm[["a"]])
+mean_and_sd(list_norm[["b"]])
+mean_and_sd(list_norm[["c"]])
+mean_and_sd(list_norm[["d"]])
+```
+```{r}
+# Initialize an empty list to store results
+output <- vector("list", length = 4)
+
+# Loop through the first 4 elements of 'list_norm' and apply 'mean_and_sd'
+for (i in 1:4) {
+  output[[i]] <- mean_and_sd(list_norm[[i]])
+}
+
+# Display the output
+output
+```
+
+
+```{r}
+# Using map to apply the function and bind rows for a combined data frame
+output <- map(list_norm, mean_and_sd) %>% 
+  bind_rows()
+
+# Alternatively, you can achieve the same with map_dfr
+output <- map_dfr(list_norm, mean_and_sd)
+
+# Display the output
+output
+```
+
+
+### list column
+```{r}
+# Create a tibble with a column of names and a column of list elements from list_norm
+listcol_df <- tibble(
+  name = c("a", "b", "c", "d"),
+  samp = list_norm
+)
+
+# Display the tibble
+listcol_df
+
+
+filtered_df <- listcol_df %>%
+  filter(name %in% c("a", "b"))
+
+# Display the filtered tibble
+filtered_df
+
+# Select all columns except 'samp' from the original tibble
+selected_df <- listcol_df %>%
+  select(-samp)
+
+```
+```{r}
+
+```
+
+```{r}
+listcol_df <- listcol_df %>%
+  mutate(
+    output = map(samp, mean_and_sd),
+    iqr = map_dbl(samp, IQR)
+  )
+
+# Display the updated tibble
+listcol_df
+```
+```{r}
+listcol_df <- listcol_df %>%
+  mutate(
+    output = map(samp, mean_and_sd),
+    iqr = map_dbl(samp, IQR)
+  ) %>%
+  select(-samp) %>%
+  unnest(output)
+
+listcol_df
+```
+
+## put all the things  in a table
+
+```{r}
+# Define the table_format function
+table_format <- function(html, table_num) {
+  out_table <- html %>%
+    html_table() %>%
+    .[[table_num]] %>%    # Access the specified table
+    slice(-1) %>%         # Remove the first row (if it's a header or unnecessary row)
+    select(-contains("p Value"))  # Remove columns that contain "p Value"
+  
+  return(out_table)
+}
+
+```
+
+```{r}
+# Define the URL
+nsduh_url <- "http://samhda.s3-us-gov-west-1.amazonaws.com/s3fs-public/field-uploads/2k15StateFiles/NSDUHsaeShortTermCHG2015.htm"
+
+nsduh_html <- read_html(nsduh_url)
+
+table1 <- table_format(html = nsduh_html, table_num = 1)
+table4 <- table_format(html = nsduh_html, table_num = 4)
+table5 <- table_format(html = nsduh_html, table_num = 5)
+
+table1
+table4
+table5
+```
+
+
